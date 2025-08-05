@@ -26,6 +26,7 @@ struct Config {
 
 	uint32_t ledStartOffset = 0;
 	uint32_t ledCount = LED_COUNT;
+	bool useGammaCorrection = false;
 
 	void foreachLed(const std::function<void(uint32_t ledIndex, uint32_t iterationIndex)> function) const {
 		uint32_t count = std::min(ledCount, LED_COUNT - ledStartOffset);
@@ -69,7 +70,17 @@ class BrighnessFactorLedWrapper : public ILedStripWithStorage {
 		uint8_t brightnessFactor;
 
 		void setActualLed(ledoffset_t index, RGBW color, bool flush) {
-			ledStrip.setLed(index, color * (float(brightnessFactor) / 255.f), flush);
+			RGBW brighnessValue = color * (float(brightnessFactor) / 255.f);
+
+			RGBW finalColor = brighnessValue;
+
+			if (Config.useGammaCorrection) {
+				uint32_t packedValue = brighnessValue.getAsPackedColor();
+				uint32_t packedGammaCorrectedValue = Adafruit_NeoPixel::gamma32(packedValue);
+				finalColor = RGBW(packedGammaCorrectedValue);
+			}
+
+			ledStrip.setLed(index, finalColor, flush);
 		}
 
 	public:
@@ -228,10 +239,8 @@ void _main() {
 	std::shared_ptr<RootElement> root = std::make_shared<RootElement>();
 
 	root->addRange("Brightness", 0, 255, ValueHandler<int32_t, uint8_t>::Create(Config.brightness, UpdatedBrightnessFunction))->endRange();
-	root->addRange("Red", 0, 255, ValueHandler<int32_t, uint8_t>::Create(Config.color.r, ManualColorFunction));
-	root->addRange("Green", 0, 255, ValueHandler<int32_t, uint8_t>::Create(Config.color.g, ManualColorFunction));
-	root->addRange("Blue", 0, 255, ValueHandler<int32_t, uint8_t>::Create(Config.color.b, ManualColorFunction));
-	root->addRange("White", 0, 255, ValueHandler<int32_t, uint8_t>::Create(Config.color.w, ManualColorFunction));
+	root->addRGBWRangeControl("Color", ValueHandler<RGBW>::Create(Config.color, ManualColorFunction));
+	root->addCheckbox("Apply gamma correction", ValueHandler<bool>::Create(Config.useGammaCorrection, UpdatedBrightnessFunction));
 
 	root->addGroup("Animation")
 	->addButton("Rainbow", FunctionTrigger::Create([&] {StartAnimation(animRainbowFunction);}))->endButton()
