@@ -12,9 +12,14 @@
 #include <BLELedController.h>
 #include <GUIDefinition.h>
 
+#include <mutex>
+
 static constexpr int LED0_PIN = 0;
 static constexpr int LED1_PIN = 1;
 static constexpr uint32_t LED_COUNT = 100;
+
+/// Mutex to avoid problems between the BLE and the main thread.
+static std::mutex UpdateMutex;
 
 struct Config {
 	uint8_t brightness = 20;
@@ -156,6 +161,8 @@ class VirtualDuplicateLedWrapper : public ILedStripWithStorage {
 };
 
 static void StartAnimation(const std::function<uint32_t(uint32_t)>& animationFunction) {
+	std::unique_lock<std::mutex> lock(UpdateMutex);
+
 	Config.activeAnimationFunction = animationFunction;
 	Config.nextAnimationTriggerTime = millis();
 }
@@ -173,6 +180,7 @@ void _main() {
 	leds.setBrightness(Config.brightness);
 
 	UpdatedBrightnessFunction = [&]() {
+		std::unique_lock<std::mutex> lock(UpdateMutex);
 		leds.setBrightness(Config.brightness, true);
 	};
 
@@ -214,6 +222,8 @@ void _main() {
 	};
 
 	auto ManualColorFunction = [&]() {
+		std::unique_lock<std::mutex> lock(UpdateMutex);
+
 		Config.activeAnimationFunction = nullptr;
 		animationManager.clear();
 
@@ -260,17 +270,23 @@ void _main() {
 	while (true) {
 		uint32_t currentTime = millis();
 
-		if (Config.activeAnimationFunction) {
-			if (currentTime >= Config.nextAnimationTriggerTime) {
-				uint32_t animationTime = Config.activeAnimationFunction(currentTime);
+		{
+			std::unique_lock<std::mutex> lock(UpdateMutex);
 
-				Config.nextAnimationTriggerTime = currentTime + animationTime;
+			if (Config.activeAnimationFunction) {
+				if (currentTime >= Config.nextAnimationTriggerTime) {
+					uint32_t animationEndTime = Config.activeAnimationFunction(currentTime);
+
+					Config.nextAnimationTriggerTime = currentTime + animationEndTime;
+				}
+
+				animationManager.update();
 			}
-
-			animationManager.update();
 		}
 
 		if (Config.alwaysUpdate) {
+			std::unique_lock<std::mutex> lock(UpdateMutex);
+
 			leds.updateLeds();
 		} else {
 			delay(10);
