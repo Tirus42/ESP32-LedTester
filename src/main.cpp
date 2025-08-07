@@ -14,7 +14,7 @@
 
 static constexpr int LED0_PIN = 0;
 static constexpr int LED1_PIN = 1;
-static constexpr uint32_t LED_COUNT = 150;
+static constexpr uint32_t LED_COUNT = 100;
 
 struct Config {
 	uint8_t brightness = 20;
