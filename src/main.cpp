@@ -43,32 +43,6 @@ struct Config {
 	}
 } Config;
 
-template <typename T, typename RefType = T>
-struct ValueHandler : public webgui::IDataHandler<T> {
-	RefType& valueRef;
-	std::function<void()> onChangeFunction;
-
-	ValueHandler(RefType& valueRef, const std::function<void()>& onChangeFunction = nullptr) :
-		valueRef(valueRef),
-		onChangeFunction(onChangeFunction) {}
-
-	static std::shared_ptr<ValueHandler<T, RefType>> Create(RefType& valueRef, const std::function<void()>& onChangeFunction = nullptr) {
-		return std::make_shared<ValueHandler<T, RefType>>(valueRef, onChangeFunction);
-	}
-
-	virtual T getValue() const override {
-		return T(valueRef);
-	}
-
-	virtual void setValue(const T& newValue) override {
-		valueRef = RefType(newValue);
-
-		if (onChangeFunction) {
-			onChangeFunction();
-		}
-	}
-};
-
 class BrighnessFactorLedWrapper : public ILedStripWithStorage {
 	private:
 		LedBufferStorage storage;
@@ -249,18 +223,18 @@ void _main() {
 
 	std::shared_ptr<RootElement> root = std::make_shared<RootElement>();
 
-	root->addRange("Brightness", 0, 255, ValueHandler<int32_t, uint8_t>::Create(Config.brightness, UpdatedBrightnessFunction))->endRange();
-	root->addRGBWRangeControl("Color", ValueHandler<RGBW>::Create(Config.color, ManualColorFunction));
-	root->addCheckbox("Apply gamma correction", ValueHandler<bool>::Create(Config.useGammaCorrection, UpdatedBrightnessFunction));
+	root->addRange("Brightness", 0, 255, RefValueHandler<int32_t, uint8_t>::Create(Config.brightness, UpdatedBrightnessFunction))->endRange();
+	root->addRGBWRangeControl("Color", RefValueHandler<RGBW>::Create(Config.color, ManualColorFunction));
+	root->addCheckbox("Apply gamma correction", RefValueHandler<bool>::Create(Config.useGammaCorrection, UpdatedBrightnessFunction));
 
 	root->addGroup("Animation")
 	->addButton("Rainbow", FunctionTrigger::Create([&] {StartAnimation(animRainbowFunction);}))->endButton()
 	->addButton("Wave", FunctionTrigger::Create([&] {StartAnimation(waveAnimationFunction);}))->endButton();
 
 	root->addGroup("Config")
-	->addCheckbox("Permanent update", ValueHandler<bool>::Create(Config.alwaysUpdate))->endCheckbox()
-	->addNumberFieldInt32("First LED Index", ValueHandler<int32_t, uint32_t>::Create(Config.ledStartOffset))->endNumberField()
-	->addNumberFieldInt32("LED count", ValueHandler<int32_t, uint32_t>::Create(Config.ledCount))->endNumberField();
+	->addCheckbox("Permanent update", RefValueHandler<bool>::Create(Config.alwaysUpdate, nullptr))->endCheckbox()
+	->addNumberFieldInt32("First LED Index", RefValueHandler<int32_t, uint32_t>::Create(Config.ledStartOffset, nullptr))->endNumberField()
+	->addNumberFieldInt32("LED count", RefValueHandler<int32_t, uint32_t>::Create(Config.ledCount, nullptr))->endNumberField();
 
 	ble.setGUI(root);
 
