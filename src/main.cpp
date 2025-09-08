@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include <LedStrip_Neopixel.h>
+#include <LedStrip_NeoPixelBus.h>
 #include <AnimationManager.h>
 #include <LedBufferStorage.h>
 
@@ -172,8 +173,8 @@ static std::function<void()> UpdatedBrightnessFunction = nullptr;
 void _main() {
 	Serial.begin(115200);
 
-	LedStrip_Neopixel leds1(LED_COUNT, LED0_PIN);
-	LedStrip_Neopixel leds2(LED_COUNT, LED1_PIN, NEO_RGB + NEO_KHZ800);
+	LedStrip_NeoPixelBus<NeoGrbwFeature, NeoEsp32BitBang800KbpsMethod> leds1(LED_COUNT, LED0_PIN);
+	LedStrip_NeoPixelBus<NeoGrbFeature, NeoEsp32BitBang800KbpsMethod> leds2(LED_COUNT, LED1_PIN);
 
 	VirtualDuplicateLedWrapper mirrorLeds(leds1, leds2);
 	BrighnessFactorLedWrapper leds(mirrorLeds);
