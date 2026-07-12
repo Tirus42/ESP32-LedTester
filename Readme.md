@@ -25,11 +25,14 @@ To individually control the LEDs use the following WebApp (Requires a Chromium b
 ---
 
 ## Minimal setup
+- Create the PlatformIO build structure inside the project folder
+  - ```pio project init .```
 - Flash the program on a ESP32-C3 using PlatformIO
   - ```pio run -t upload```
-- Connect the SK6812 LED with its Data-In pin to Pin 0 or Pin 1 of the ESP32
+- Connect the SK6812 LED with its Data-In pin to Pin 0 or Pin 1 of the ESP32-C3
   - Pin 0 for RGB+W LEDs, Pin 1 for RGB-only LEDs
 - Connect a 5V power source to the ESP32-C3 and the LED
+- Now you should see a rainbow animation using all color channels
 
 ---
 
