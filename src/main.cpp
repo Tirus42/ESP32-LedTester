@@ -106,35 +106,6 @@ class BrighnessFactorLedWrapper : public ILedStripWithStorage {
 		}
 };
 
-class VirtualDuplicateLedWrapper : public ILedStripWithStorage {
-	private:
-		ILedStripWithStorage& ledStrip0;
-		ILedStripWithStorage& ledStrip1;
-
-	public:
-		VirtualDuplicateLedWrapper(ILedStripWithStorage& ledStrip0, ILedStripWithStorage& ledStrip1) :
-			ledStrip0(ledStrip0),
-			ledStrip1(ledStrip1) {}
-
-		virtual ledoffset_t getLedCount() const override {
-			return ledStrip0.getLedCount();
-		}
-
-		virtual RGBW getLed(ledoffset_t index) const override {
-			return ledStrip0.getLed(index);
-		}
-
-		virtual void setLed(ledoffset_t index, RGBW color, bool flush = false) override {
-			ledStrip0.setLed(index, color, flush);
-			ledStrip1.setLed(index, color, flush);
-		}
-
-		virtual void updateLeds() override {
-			ledStrip0.updateLeds();
-			ledStrip1.updateLeds();
-		}
-};
-
 static void StartAnimation(const std::function<uint32_t(uint32_t)>& animationFunction) {
 	std::unique_lock<std::mutex> lock(UpdateMutex);
 
@@ -150,7 +121,7 @@ void _main() {
 	LedStrip_NeoPixelBus<NeoGrbwFeature, NeoEsp32BitBang800KbpsMethod> leds1(LED_COUNT, LED0_PIN);
 	LedStrip_NeoPixelBus<NeoGrbFeature, NeoEsp32BitBang800KbpsMethod> leds2(LED_COUNT, LED1_PIN);
 
-	VirtualDuplicateLedWrapper mirrorLeds(leds1, leds2);
+	VirtualDuplicatedLedStrip mirrorLeds(leds1, leds2);
 	BrighnessFactorLedWrapper leds(mirrorLeds);
 	leds.setBrightness(Config.brightness);
 
